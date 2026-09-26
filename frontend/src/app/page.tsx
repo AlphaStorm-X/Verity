@@ -17,7 +17,7 @@ export default function CommandCenter() {
     refetchInterval: 3000,
   });
 
-  const intentCounts = stats?.intent_counts || {};
+  const intentCounts: Record<string, number> = stats?.intent_counts ?? {};
   const recentIncidents = stats?.recent_incidents || [];
   const exposureTotal = stats?.potential_duplicate_exposure_total ?? 0;
   const preventedCount = stats?.prevented_ledger_commitments_count ?? 0;
