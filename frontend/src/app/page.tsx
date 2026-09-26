@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { DashboardStats } from "@/lib/types";
-import { ShieldCheck, AlertTriangle, ShieldAlert, CheckCircle, ArrowRight, Activity, DollarSign } from "lucide-react";
+import { ShieldCheck, AlertTriangle, ShieldAlert, Activity, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 
@@ -16,6 +16,11 @@ export default function CommandCenter() {
     },
     refetchInterval: 3000,
   });
+
+  const intentCounts = stats?.intent_counts || {};
+  const recentIncidents = stats?.recent_incidents || [];
+  const exposureTotal = stats?.potential_duplicate_exposure_total ?? 0;
+  const preventedCount = stats?.prevented_ledger_commitments_count ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
@@ -68,14 +73,14 @@ export default function CommandCenter() {
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white mt-3">
-                  ₹{stats.potential_duplicate_exposure_total.toLocaleString("en-IN")}
+                  ₹{exposureTotal.toLocaleString("en-IN")}
                 </div>
                 <span className="text-xs text-gray-400 mt-2 block">
                   Total raw observed payment exposure across unverified attempts
                 </span>
               </div>
 
-              {/* Metric 2: Automatic Ledger Commitments Prevented (NEVER money saved) */}
+              {/* Metric 2: Automatic Ledger Commitments Prevented */}
               <div className="bg-gray-900 border border-blue-900/60 rounded-xl p-6 shadow-xl">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wider font-semibold text-blue-400">
@@ -86,7 +91,7 @@ export default function CommandCenter() {
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white mt-3">
-                  {stats.prevented_ledger_commitments_count}
+                  {preventedCount}
                 </div>
                 <span className="text-xs text-gray-400 mt-2 block">
                   Incidents where engine halted duplicate ledger write (never "money saved")
@@ -104,7 +109,7 @@ export default function CommandCenter() {
                   </div>
                 </div>
                 <div className="text-3xl font-black text-white mt-3">
-                  {stats.intent_counts.HELD_FOR_REVIEW || 0}
+                  {intentCounts.HELD_FOR_REVIEW || 0}
                 </div>
                 <span className="text-xs text-gray-400 mt-2 block">
                   Transactions in HELD_FOR_REVIEW state requiring reviewer action
@@ -118,7 +123,7 @@ export default function CommandCenter() {
                 Intent Counts by Resolution State
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {Object.entries(stats.intent_counts).map(([state, count]) => (
+                {Object.entries(intentCounts).map(([state, count]) => (
                   <div key={state} className="bg-gray-950 border border-gray-800 p-4 rounded-lg">
                     <span className="text-[11px] font-mono text-gray-400 block truncate">{state}</span>
                     <span className="text-2xl font-extrabold text-white mt-1 block font-mono">{count}</span>
@@ -150,13 +155,13 @@ export default function CommandCenter() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800 font-mono">
-                    {stats.recent_incidents.map((inc) => (
+                    {recentIncidents.map((inc) => (
                       <tr key={inc.id} className="hover:bg-gray-800/40 transition-colors">
                         <td className="px-4 py-3 text-blue-400 font-bold">{inc.id}</td>
                         <td className="px-4 py-3 text-gray-300">{inc.transaction_id}</td>
-                        <td className="px-4 py-3 text-white font-bold">₹{inc.declared_amount.toLocaleString("en-IN")}</td>
-                        <td className="px-4 py-3 text-amber-300">₹{inc.observed_amount.toLocaleString("en-IN")}</td>
-                        <td className="px-4 py-3 text-emerald-400 font-bold">₹{inc.committed_amount.toLocaleString("en-IN")}</td>
+                        <td className="px-4 py-3 text-white font-bold">₹{(inc.declared_amount ?? 0).toLocaleString("en-IN")}</td>
+                        <td className="px-4 py-3 text-amber-300">₹{(inc.observed_amount ?? 0).toLocaleString("en-IN")}</td>
+                        <td className="px-4 py-3 text-emerald-400 font-bold">₹{(inc.committed_amount ?? 0).toLocaleString("en-IN")}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             inc.state === "HELD_FOR_REVIEW" || inc.state === "POTENTIAL_DUPLICATE"

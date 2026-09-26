@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { backendStore } from "@/lib/store";
 
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export async function GET() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/simulations`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      return NextResponse.json(data);
+    }
+  } catch {
+    // Fallback
+  }
   const scenarios = backendStore.getScenarios();
   return NextResponse.json(scenarios);
-}
-
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
-  const scenarios = backendStore.getScenarios();
-  const selected = scenarios.find(s => s.id === body.scenario_id) || scenarios[0];
-  
-  return NextResponse.json({
-    status: "CREATED",
-    simulation: selected
-  });
 }

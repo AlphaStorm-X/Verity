@@ -1,6 +1,50 @@
+# Node.js
 node_modules/
 .next/
 dist/
+build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.eggs/
+*.egg-info/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment Variables & Secrets
 .env
 .env.local
+.env.*
+!.env.example
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing & Linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Logs & Databases
 *.log
+*.sqlite
+*.db
+
+# OS Generated
+Thumbs.db
