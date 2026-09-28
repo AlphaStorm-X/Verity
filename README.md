@@ -1,93 +1,181 @@
-# VERITY — Payment-Truth and Financial-Failure Intelligence Engine
+<div align="center">
 
-> **VERITY is a payment-truth and financial-failure intelligence engine.**
+# VERITY
 
-It ingests payment observations across multiple providers (Merchant, Gateway, Bank, Webhook delivery) and determines the **safest defensible financial interpretation** without making unsafe financial commitments.
+### Payment-Truth & Financial-Failure Intelligence Engine
 
----
+Verity reconciles conflicting payment observations from merchant, gateway, bank and webhook systems and decides what is **safe to commit to the ledger**. When evidence is ambiguous, it sends the case to manual review instead of guessing.
 
-## Key Invariants & Guarantees
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=fff)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=fff)
+![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=fff)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff)
 
-1. **I1 Idempotency**: Replaying duplicate events creates zero additional financial effects.
-2. **I2 Deterministic Simulation**: `generate(scenario, seed)` yields byte-identical event sequences and resolutions.
-3. **I3 & I7 Safe Ambiguity**: `POTENTIAL_DUPLICATE`, `CONFLICTING_STATE`, `INSUFFICIENT_EVIDENCE`, and `MANUAL_REVIEW` can **never** auto-create a financial transaction. Safe refusal (`MANUAL_REVIEW`) is a successful outcome.
-4. **I4 One Transaction Per Intent**: Database `UNIQUE(intent_id)` constraint on `financial_transactions`.
-5. **I5 Immutable Events**: `payment_events` table is append-only.
-6. **I8 & I9 Single Ledger Write Path**: ONLY `create_financial_transaction(db, intent_id, attempt_id)` is authorized to write to `financial_transactions`.
+[Problem](#the-problem) · [Guarantees](#guarantees) · [Architecture](#architecture) · [Quick Start](#quick-start) · [API](#api) · [Testing](#testing)
 
----
-
-## Architecture & Technology Stack
-
-* **Backend Framework**: FastAPI (Python 3.12 / 3.13) - Port `8000`
-* **Frontend Framework**: Next.js (React 18, Tailwind CSS) - Port `3000`
-* **Database**: PostgreSQL 16 with SQLAlchemy 2.0 ORM & Alembic Migrations
-* **Validation**: Pydantic v2 schemas
-* **Testing**: Pytest & Hypothesis (Property-Based Testing)
-* **Containerization**: Docker & Docker Compose
+</div>
 
 ---
 
-## Quickstart & Running Locally
+## The Problem
 
-### 1. Prerequisites
-- Python 3.12+
-- Node.js 18+
-- PostgreSQL database running on `127.0.0.1:5432` with database `verity_db` created (or Docker).
+A gateway times out, the merchant retries, and now the bank shows two successes while the webhook is still delayed.
 
-### 2. Run with Docker Compose (Recommended)
-Start database, backend (port 8000), and frontend (port 3000) simultaneously:
+```
+Attempt 1 → Gateway timeout
+Attempt 2 → Gateway SUCCESS · Bank SUCCESS · Webhook DELAYED
+```
+
+Verity sees **₹4,000** of exposure but can only attribute **₹2,000** to a legitimate payment intent. Booking ₹4,000 would be wrong, so Verity treats uncertainty as a first-class state and commits nothing until it is safe.
+
+> Observed payment activity is not automatically financial truth.
+
+## Guarantees
+
+| ID | Guarantee |
+|---|---|
+| I1 | **Idempotency:** replaying duplicate events has no extra financial effect |
+| I2 | **Determinism:** `generate(scenario, seed)` always produces the same events |
+| I3 / I7 | **Safe ambiguity:** `POTENTIAL_DUPLICATE`, `CONFLICTING_STATE`, `INSUFFICIENT_EVIDENCE`, `MANUAL_REVIEW` never auto-create a transaction |
+| I4 | **One transaction per intent:** enforced by a DB uniqueness constraint on `intent_id` |
+| I5 | **Immutable events:** observations are append-only |
+| I8 / I9 | **Single ledger write path:** transactions are created only through one authorized route |
+
+`MANUAL_REVIEW` is a successful safety outcome, not a failure.
+
+## Architecture
+
+```mermaid
+flowchart TB
+    A[Merchant / Gateway / Bank / Webhook] --> B[Event Ingestion]
+    B --> C[Reconciliation Engine]
+    C --> D[Duplicate & Conflict Detection]
+    D --> E{Safe to commit?}
+    E -->|Yes| F[Ledger Transaction]
+    E -->|No| G[Incident + Manual Review]
+    G --> H[Reviewer Decision]
+    F --> I[Dashboard]
+    H --> I
+```
+
+Events are stored immutably, grouped by payment intent and attempt, and compared across providers. Only a safe interpretation reaches the ledger.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI, Python 3.12, SQLAlchemy, Alembic, Pydantic |
+| Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS, TanStack Query |
+| Database | PostgreSQL |
+| Testing | Pytest, Hypothesis |
+| Infra | Docker Compose |
+
+## Project Structure
+
+```
+Verity/
+├── app/          # FastAPI backend
+├── src/          # Next.js frontend
+├── tests/        # Unit, API and property-based tests
+├── migrations/   # Alembic migrations
+├── scripts/      # Helper scripts
+├── docker-compose.yml
+├── .env.example
+└── ASSUMPTIONS.md
+```
+
+## Quick Start
+
+**Requirements:** Docker and Docker Compose. (Without Docker: Python 3.12+, Node.js 18+, PostgreSQL.)
+
 ```bash
+git clone https://github.com/AlphaStorm-X/Verity.git
+cd Verity
+cp .env.example .env
 docker-compose up --build
 ```
 
-### 3. Running Services Individually
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend | http://localhost:8000 |
+| API docs | http://localhost:8000/docs |
 
-#### Start Backend (Port 8000):
-```bash
-py -3.12 -m uvicorn app.main:app --reload --port 8000
-```
+**Without Docker**
 
-#### Start Frontend (Port 3000):
 ```bash
+# backend
+pip install -r requirements.txt
+alembic upgrade head
+python -m uvicorn app.main:app --reload --port 8000
+
+# frontend
+npm install
 npm run dev
-# or inside /frontend directory:
-cd frontend && npm run dev
 ```
 
----
+## Configuration
 
-## API Endpoints Summary
+| Variable | Purpose | Required |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Application health check |
-| `POST` | `/api/events` | Ingest raw payment observation webhook |
-| `GET` | `/api/events` | List ingested payment events |
-| `GET` | `/api/transactions` | List committed financial transactions |
-| `GET` | `/api/transactions/:id` | Get transaction or intent details |
-| `GET` | `/api/transactions/:id/timeline` | Get reconstructed chronological event timeline |
-| `GET` | `/api/transactions/:id/analysis` | Get incident analysis & naive comparison |
-| `POST` | `/api/transactions/:id/explain` | Generate natural language explanation |
-| `GET` | `/api/incidents` | List financial incidents requiring review |
-| `GET` | `/api/incidents/:id` | Get full incident detail |
-| `POST` | `/api/incidents/:id/review` | Submit reviewer decision (`CONFIRM_ATTEMPT` / `MARK_DUPLICATE`) |
-| `POST` | `/api/simulations` | Create simulation run |
-| `POST` | `/api/simulations/:id/run` | Execute deterministic simulation scenario |
-| `GET` | `/api/dashboard` | Get dashboard exposure metrics and summaries |
-
----
-
-## Canonical Scenario Verification
-
-Run the canonical network timeout retry scenario:
+## Demo: Canonical Scenario
 
 ```bash
 curl -X POST "http://localhost:8000/api/simulations/CANONICAL_DEMO/run?seed=42"
 ```
 
-Expected Interpretation:
-* **Observed Exposure**: ₹4,000
-* **Candidate Legitimate Amount**: ₹2,000
-* **Committed Ledger Amount**: ₹0
-* **Aggregate State**: `POTENTIAL_DUPLICATE` / `MANUAL_REVIEW`
+| Metric | Result |
+|---|---|
+| Observed exposure | ₹4,000 |
+| Candidate legitimate amount | ₹2,000 |
+| Committed to ledger | ₹0 |
+| State | `POTENTIAL_DUPLICATE` / `MANUAL_REVIEW` |
+
+Then open http://localhost:3000, inspect the timeline and incident, and submit a review decision (`CONFIRM_ATTEMPT` or `MARK_DUPLICATE`).
+
+## API
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Health check |
+| POST | `/api/events` | Ingest a payment observation |
+| GET | `/api/events` | List events |
+| GET | `/api/transactions` | List transactions |
+| GET | `/api/transactions/:id` | Transaction details |
+| GET | `/api/transactions/:id/timeline` | Event timeline |
+| GET | `/api/transactions/:id/analysis` | Reconciliation analysis |
+| POST | `/api/transactions/:id/explain` | Generate explanation |
+| GET | `/api/incidents` | List incidents |
+| GET | `/api/incidents/:id` | Incident details |
+| POST | `/api/incidents/:id/review` | Review an incident |
+| POST | `/api/simulations` | Create simulation |
+| POST | `/api/simulations/:id/run` | Run simulation |
+| GET | `/api/dashboard` | Dashboard metrics |
+
+## Testing
+
+```bash
+pytest      # backend, incl. Hypothesis property-based tests
+npm test    # frontend
+```
+
+Property-based tests check invariants such as *duplicate replay → no additional financial effect* and *ambiguous state → no automatic ledger transaction*.
+
+## Limitations
+
+Demonstration system, not a production payment processor. No compliance claims are made. Not yet implemented: authentication, real provider integrations, streaming ingestion at scale, production observability.
+
+## Contributing
+
+Fork → clone → branch → install dependencies → `pytest && npm test` → make changes → run tests again → open a PR. Changes to the ledger write path must preserve the guarantees above.
+
+## License
+
+No license has currently been specified.
+
+## Author
+
+[AlphaStorm-X](https://github.com/AlphaStorm-X)POTENTIAL_DUPLICATE` / `MANUAL_REVIEW`
