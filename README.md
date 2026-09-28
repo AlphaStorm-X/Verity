@@ -2,17 +2,20 @@
 
 # VERITY
 
-### Payment-Truth & Financial-Failure Intelligence Engine
+### Deterministic Financial Truth Engine
 
 Verity reconciles conflicting payment observations from merchant, gateway, bank and webhook systems and decides what is **safe to commit to the ledger**. When evidence is ambiguous, it sends the case to manual review instead of guessing.
+
+**[Live Demo](https://verity-1-drxq.onrender.com/)** · **[Canonical Investigation](https://verity-1-drxq.onrender.com/transactions/tx_canonical_retry_001)** · **[Naive vs VERITY](https://verity-1-drxq.onrender.com/compare/tx_canonical_retry_001)**
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=fff)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=fff)
 ![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=fff)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff)
+[![Live](https://img.shields.io/badge/demo-live-brightgreen)](https://verity-1-drxq.onrender.com/)
 
-[Problem](#the-problem) · [Guarantees](#guarantees) · [Architecture](#architecture) · [Quick Start](#quick-start) · [API](#api) · [Testing](#testing)
+[Problem](#the-problem) · [Live Demo](#live-demo) · [Guarantees](#guarantees) · [Architecture](#architecture) · [Quick Start](#quick-start) · [API](#api) · [Testing](#testing) · [Team](#team)
 
 </div>
 
@@ -30,6 +33,23 @@ Attempt 2 → Gateway SUCCESS · Bank SUCCESS · Webhook DELAYED
 Verity sees **₹4,000** of exposure but can only attribute **₹2,000** to a legitimate payment intent. Booking ₹4,000 would be wrong, so Verity treats uncertainty as a first-class state and commits nothing until it is safe.
 
 > Observed payment activity is not automatically financial truth.
+
+## Live Demo
+
+**https://verity-1-drxq.onrender.com/**
+
+> Hosted on Render. The first load may be slow if the service is waking up.
+
+| Page | What it shows |
+|---|---|
+| [Command Center](https://verity-1-drxq.onrender.com/) | Real-time monitor of payment intent resolution and duplicate-commitment prevention |
+| [Investigation](https://verity-1-drxq.onrender.com/transactions/tx_canonical_retry_001) | Drill-down into the canonical retry transaction |
+| [Compare (Naive vs VERITY)](https://verity-1-drxq.onrender.com/compare/tx_canonical_retry_001) | Side-by-side outcome of a naive system vs Verity |
+| [Simulation Center](https://verity-1-drxq.onrender.com/simulate) | Run deterministic scenarios |
+| [Live Incident](https://verity-1-drxq.onrender.com/live/run_demo_001) | Follow an incident as it unfolds |
+| [Reliability](https://verity-1-drxq.onrender.com/reliability) | Reliability view of the engine |
+
+**30-second tour:** open the Command Center → click *Launch Demo Investigation* → open *Compare* to see the naive system book ₹4,000 while Verity commits ₹0 and flags the case for review.
 
 ## Guarantees
 
@@ -69,7 +89,7 @@ Events are stored immutably, grouped by payment intent and attempt, and compared
 | Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS, TanStack Query |
 | Database | PostgreSQL |
 | Testing | Pytest, Hypothesis |
-| Infra | Docker Compose |
+| Infra | Docker Compose, Render (demo hosting) |
 
 ## Project Structure
 
@@ -121,7 +141,7 @@ npm run dev
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 
-## Demo: Canonical Scenario
+## Canonical Scenario
 
 ```bash
 curl -X POST "http://localhost:8000/api/simulations/CANONICAL_DEMO/run?seed=42"
@@ -134,7 +154,7 @@ curl -X POST "http://localhost:8000/api/simulations/CANONICAL_DEMO/run?seed=42"
 | Committed to ledger | ₹0 |
 | State | `POTENTIAL_DUPLICATE` / `MANUAL_REVIEW` |
 
-Then open http://localhost:3000, inspect the timeline and incident, and submit a review decision (`CONFIRM_ATTEMPT` or `MARK_DUPLICATE`).
+Then open the dashboard, inspect the timeline and incident, and submit a review decision (`CONFIRM_ATTEMPT` or `MARK_DUPLICATE`).
 
 ## API
 
@@ -172,10 +192,11 @@ Demonstration system, not a production payment processor. No compliance claims a
 
 Fork → clone → branch → install dependencies → `pytest && npm test` → make changes → run tests again → open a PR. Changes to the ledger write path must preserve the guarantees above.
 
-## License
+## Team
 
-No license has currently been specified.
+| Contributor | GitHub |
+|---|---|
+| Monika Yadav | [@AlphaStorm-X](https://github.com/AlphaStorm-X) |
+| Kashish | [@Kashish-17-06](https://github.com/Kashish-17-06) |
+| Aivexh | [@Aivexh](https://github.com/Aivexh) |
 
-## Author
-
-[AlphaStorm-X](https://github.com/AlphaStorm-X)POTENTIAL_DUPLICATE` / `MANUAL_REVIEW`
